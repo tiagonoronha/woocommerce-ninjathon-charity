@@ -34,7 +34,11 @@ class WC_Ninjathon_Charity {
      * Constructor
      */
     public function __construct() {
+    	add_action( 'woocommerce_cart_contents', array( $this, 'woocommerce_charity_toggle' ) );
     	add_action( 'woocommerce_cart_calculate_fees', array( $this, 'woocommerce_custom_surcharge' ) );
+    	add_action( 'init', array( $this, 'woocommerce_donate_set_session' ) );
+    	add_action( 'wp_enqueue_scripts', array( $this, 'woocommerce_donate_load_js' ) );
+    	add_action( 'woocommerce_cart_emptied', array( $this, 'woocommerce_donate_clear_session' ) );
     }
 
 	/**
@@ -48,12 +52,63 @@ class WC_Ninjathon_Charity {
 		if ( is_admin() && ! defined( 'DOING_AJAX' ) )
 			return;
 
-		$percentage = 0.01;
-		$surcharge = ( $woocommerce->cart->cart_contents_total + $woocommerce->cart->shipping_total ) * $percentage;
-		$woocommerce->cart->add_fee( 'Surcharge', $surcharge, true, 'standard' );
+		$donate_or_not = WC()->session->get( 'donate_charity' );
 
+		if ( true == $donate_or_not ) {
+			$percentage = 0.01;
+			$surcharge = ( $woocommerce->cart->cart_contents_total + $woocommerce->cart->shipping_total ) * $percentage;
+			$woocommerce->cart->add_fee( 'Donation', $surcharge, true, 'standard' );
+		}
 	}
 
+	public function woocommerce_charity_toggle() {
+
+		global $woocommerce;
+
+		$donate_or_not = WC()->session->get( 'donate_charity' );
+
+		?>
+		<tr>
+			<td colspan="6">
+				<div class="ninjathon-charity">
+					<h3><?php _e( 'Donate to Charity' ); ?></h3>
+					<?php
+						woocommerce_form_field( 'donate_charity', array(
+							'type' => 'checkbox',
+							'class' => array('donate_charity'),
+							'label' => __('Donate 1% for baby ninjas in Africa.'),
+							'required' => false,
+						), $donate_or_not );
+					?>
+				</div>
+			</td>
+		</tr>
+		<?php
+	}
+
+	public function woocommerce_donate_set_session() {
+		if ( ( ! empty( $_POST['apply_coupon'] ) || ! empty( $_POST['update_cart'] ) || ! empty( $_POST['proceed'] ) ) && isset( $_POST['_wpnonce'] ) && wp_verify_nonce( $_POST['_wpnonce'], 'woocommerce-cart' ) ) {
+			if ( isset( $_POST['donate_charity'] ) ) {
+				WC()->session->set( 'donate_charity', true );
+			} else {
+				WC()->session->set( 'donate_charity', false );
+			}
+		}
+	}
+
+	public function woocommerce_donate_load_js() {
+        wp_enqueue_script(
+            'wocommerce-ninjathon-charity', // Give the script an ID
+            untrailingslashit( plugins_url( basename( plugin_dir_path( __FILE__ ) ), basename( __FILE__ ) ) ) . '/assets/scripts.js', //Point to file
+            array( 'jquery' ),
+            '20141106',
+            true
+        );
+	}
+
+	public function woocommerce_donate_clear_session() {
+		WC()->session->set( 'donate_charity', false );
+	}
 }
 
 $GLOBALS['wc_ninjathon_charity'] = new WC_Ninjathon_Charity();
