@@ -112,3 +112,25 @@ class WC_Ninjathon_Charity {
 }
 
 $GLOBALS['wc_ninjathon_charity'] = new WC_Ninjathon_Charity();
+
+add_filter( 'woocommerce_get_settings_checkout', 'checkout_for_charity_settings', 20, 1 );
+
+function checkout_for_charity_settings( $settings ) {
+
+$settings[] = array(
+ 'type' => 'title',
+ 'title' => __( 'Charity Options', 'woocommerce' ),
+ 'id' => 'woocommerce_charity_options',
+ );
+  $settings[] = array(
+  'title'    => __( 'Charity', 'woocommerce' ),
+  'desc'     => __( 'Enable the addition of 1% of cart total to charity', 'woocommerce' ),
+  'id'       => 'woocommerce_enable_charity',
+  'default'  => 'no',
+  'type'     => 'checkbox',
+  'desc_tip' =>  __( 'Users will be presented with an option to add a donation to charity', 'woocommerce' ),
+  'autoload' => false
+  );
+ $settings[] =  array( 'type' => 'sectionend', 'id' => 'woocommerce_charity_options');
+ return $settings;
+}
