@@ -34,11 +34,15 @@ class WC_Ninjathon_Charity {
      * Constructor
      */
     public function __construct() {
-    	add_action( 'woocommerce_cart_contents', array( $this, 'woocommerce_charity_toggle' ) );
-    	add_action( 'woocommerce_cart_calculate_fees', array( $this, 'woocommerce_custom_surcharge' ) );
-    	add_action( 'init', array( $this, 'woocommerce_donate_set_session' ) );
-    	add_action( 'wp_enqueue_scripts', array( $this, 'woocommerce_donate_load_js' ) );
-    	add_action( 'woocommerce_cart_emptied', array( $this, 'woocommerce_donate_clear_session' ) );
+    	add_filter( 'woocommerce_get_settings_checkout', array( $this, 'checkout_for_charity_settings' ), 20, 1 );
+
+    	if ( 'yes' == get_option( 'woocommerce_enable_charity' ) ) {
+			add_action( 'woocommerce_cart_contents', array( $this, 'woocommerce_charity_toggle' ) );
+			add_action( 'woocommerce_cart_calculate_fees', array( $this, 'woocommerce_custom_surcharge' ) );
+			add_action( 'init', array( $this, 'woocommerce_donate_set_session' ) );
+			add_action( 'wp_enqueue_scripts', array( $this, 'woocommerce_donate_load_js' ) );
+			add_action( 'woocommerce_cart_emptied', array( $this, 'woocommerce_donate_clear_session' ) );
+    	}
     }
 
 	/**
@@ -109,28 +113,31 @@ class WC_Ninjathon_Charity {
 	public function woocommerce_donate_clear_session() {
 		WC()->session->set( 'donate_charity', false );
 	}
+
+
+	public function checkout_for_charity_settings( $settings ) {
+
+		$settings[] = array(
+			'type' => 'title',
+			'title' => __( 'Charity Options', 'woocommerce' ),
+			'id' => 'woocommerce_charity_options',
+		);
+
+		$settings[] = array(
+			'title'    => __( 'Charity', 'woocommerce' ),
+			'desc'     => __( 'Enable the addition of 1% of cart total to charity', 'woocommerce' ),
+			'id'       => 'woocommerce_enable_charity',
+			'default'  => 'no',
+			'type'     => 'checkbox',
+			'desc_tip' =>  __( 'Users will be presented with an option to add a donation to charity', 'woocommerce' ),
+			'autoload' => false
+		);
+
+		$settings[] =  array( 'type' => 'sectionend', 'id' => 'woocommerce_charity_options');
+
+		return $settings;
+
+	}
 }
 
 $GLOBALS['wc_ninjathon_charity'] = new WC_Ninjathon_Charity();
-
-add_filter( 'woocommerce_get_settings_checkout', 'checkout_for_charity_settings', 20, 1 );
-
-function checkout_for_charity_settings( $settings ) {
-
-$settings[] = array(
- 'type' => 'title',
- 'title' => __( 'Charity Options', 'woocommerce' ),
- 'id' => 'woocommerce_charity_options',
- );
-  $settings[] = array(
-  'title'    => __( 'Charity', 'woocommerce' ),
-  'desc'     => __( 'Enable the addition of 1% of cart total to charity', 'woocommerce' ),
-  'id'       => 'woocommerce_enable_charity',
-  'default'  => 'no',
-  'type'     => 'checkbox',
-  'desc_tip' =>  __( 'Users will be presented with an option to add a donation to charity', 'woocommerce' ),
-  'autoload' => false
-  );
- $settings[] =  array( 'type' => 'sectionend', 'id' => 'woocommerce_charity_options');
- return $settings;
-}
